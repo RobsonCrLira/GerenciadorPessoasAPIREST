@@ -6,25 +6,28 @@ import one.digitalinnovation.personapi.entity.Person;
 import one.digitalinnovation.personapi.exception.PersonNotFoundException;
 import one.digitalinnovation.personapi.mapper.PersonMapper;
 import one.digitalinnovation.personapi.repository.PersonRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class PersonService {
 
-    private PersonRepository personRepository;
+    private final PersonRepository personRepository;
 
     private final PersonMapper personMapper = PersonMapper.INSTANCE;
+
+    @Autowired
+    public PersonService(PersonRepository personRepository) {
+        this.personRepository = personRepository;
+    }
 
     public MessageResponseDTO createPerson(PersonDTO personDTO) {
 
         Person personToSave = personMapper.toModel(personDTO);
 
         Person savePerson = personRepository.save(personToSave);
-        return MessageResponseDTO
-                .builder()
-                .message("Create Person with TD ::" +savePerson.getId())
-                .build();
+        return createMessageResponse(savePerson.getId(), "Created person with  ID ::");
     }
 
     public List<PersonDTO> listAll() {
@@ -40,14 +43,30 @@ public class PersonService {
         return personMapper.toDTO(person);
     }
 
+    public void delete(Long id) throws PersonNotFoundException {
+        verifyIfExists(id);
+
+        personRepository.deleteById(id);
+    }
+
     private Person verifyIfExists(Long id) throws PersonNotFoundException {
         return personRepository.findById(id)
                 .orElseThrow(() -> new PersonNotFoundException(id));
     }
 
-    public void delete(Long id) throws PersonNotFoundException {
+    public MessageResponseDTO updateById(Long id, PersonDTO personDTO) throws PersonNotFoundException {
         verifyIfExists(id);
 
-        personRepository.deleteById(id);
+        Person personToSave = personMapper.toModel(personDTO);
+
+        Person updatedPerson = personRepository.save(personToSave);
+        return createMessageResponse(updatedPerson.getId(), "Updated person with  ID ::");
+    }
+
+    private MessageResponseDTO createMessageResponse(Long id, String s) {
+        return MessageResponseDTO
+                .builder()
+                .message(s + id)
+                .build();
     }
 }
